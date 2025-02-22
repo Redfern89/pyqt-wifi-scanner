@@ -155,7 +155,8 @@ class ChoseWiFiAdapderDialog(QDialog):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
-		self.setWindowTitle("Chose WiFi adapter")
+		self.setWindowTitle("Выбор Wifi адаптера")
+		self.setWindowIcon(QIcon('icons/ethernet.png'))
 		self.setGeometry(200, 200, 1120, 520)
 
 		self.table = QTableView(self)
@@ -429,7 +430,8 @@ class MainWindow(QMainWindow):
 		self.hopper_thread = None
 		self.stop_hopping = threading.Event()
 		
-		self.setWindowTitle("Advanced WiFi scaner")
+		self.setWindowTitle("PyQt WiFi scanner")
+		self.setWindowIcon(QIcon('icons/satellite-dish.png'))
 		self.setGeometry(100, 100, 1500, 530)
 		
 		self.btn_wifi = QPushButton('Выбор адаптера')

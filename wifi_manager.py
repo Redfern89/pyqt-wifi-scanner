@@ -107,7 +107,7 @@ def set_phy_80211_monitor(phy):
 		set_phy_link(phy, 'down')
 		time.sleep(1)
 		if get_phy_state(phy) == False:
-			print(f"{phy} {iface} is down state")
+			#print(f"{phy} {iface} is down state")
 			iface_index = 0
 			mon_iface = f"radio{iface_index}mon"
 
