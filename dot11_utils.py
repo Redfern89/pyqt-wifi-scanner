@@ -72,10 +72,15 @@ def get_wifi_encryption(pkt):
 	
 	# WPA не содержит RSN IE, а Vendor OUI 00:50:f2 (Microsoft) с ID 1, так их и можно различить
 	elt = pkt.getlayer(Dot11Elt)
+	
+	# В принципе оба тега 48 (RSN INFO) и 221 c ID1 могут тут существтовать
+	# Это типа обратная совместимость WPA/WPA2 Mixed и можно было бы на это
+	# проверять, но мне реально лень. Почти все сети в анализе содержат оба
+	# этих поля одновременно
 	while elt:
 		if elt.ID == 48:
-			rsn_info = elt.info
-		elif elt.ID == 221 and elt.info.startswith(b'\x00\x50\xF2\x01'):
+			rsn_info = elt.info # WPA2
+		elif elt.ID == 221 and elt.info.startswith(b'\x00\x50\xF2\x01'): # WPA
 			wpa_info = elt.info
 		elt = elt.payload.getlayer(Dot11Elt)
 	
