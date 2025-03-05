@@ -55,8 +55,8 @@ def get_chip_vendor(pkt: bytes) -> str:
 	return "Unknown"
 	
 '''
-	IEEE 802.11-2016
-	 ├─> 9.4.2.25 RSNE
+    IEEE 802.11-2016
+     ├─> 9.4.2.25 RSNE
      │      ├─> 9.4.2.25.1 General
      │⁠      ├─> 9.4.2.25.2 Cipher suites
      │⁠      ╰─> 9.4.2.25.3 AKM suites
