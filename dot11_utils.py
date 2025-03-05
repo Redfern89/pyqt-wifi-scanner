@@ -56,11 +56,13 @@ def get_chip_vendor(pkt: bytes) -> str:
 	
 '''
 	IEEE 802.11-2016
-	 ╰─> 9.4.2.25 RSNE
-            ├─> 9.4.2.25.1 General
-            ├─> 9.4.2.25.2 Cipher suites
-            ╰─> 9.4.2.25.3 AKM suites
-            
+	 ├─> 9.4.2.25 RSNE
+     │      ├─> 9.4.2.25.1 General
+     │⁠      ├─> 9.4.2.25.2 Cipher suites
+     │⁠      ╰─> 9.4.2.25.3 AKM suites
+     ╰─> 9.4.1.4 Capabilitу information field
+            ╰─> Figure 9-68 Capabilitу information field (non-DMG STA)
+
   Как я с этим заебался.... Нужно найти инфу о ключах шифрования и пройтись по спискам ключей
 '''
 def get_wifi_encryption(pkt):
