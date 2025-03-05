@@ -114,7 +114,7 @@ class DeauthDialog(QDialog):
 		self.CLIENT = None
 		self.deauth_count = 5
 		
-		self.setWindowTitle(f"Мониторинг сети ya_setko")
+		self.setWindowTitle("Мониторинг сети")
 		
 		xrandr_wxh = subprocess.check_output("xrandr | grep '*' | awk '{print $1}'", shell=True).decode()
 		wh = xrandr_wxh.split('x')
