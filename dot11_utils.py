@@ -61,7 +61,6 @@ def get_chip_vendor(pkt: bytes) -> str:
          ├─> 9.4.2.25.2 Cipher suites
 	     ╰─> 9.4.2.25.3 AKM suites
 '''
-
 def get_wifi_encryption(pkt):
 	wep = False
 	rsn_info = False
@@ -221,6 +220,9 @@ def get_wifi_akm_info(pkt):
 	}
 	return result
 
+'''
+	В версии 2.0 есть расширеный вендор или инфа по 2.4ггц
+'''
 def parse_wps_version(wps_ie):
     i = 4
     wps_version = None
@@ -245,7 +247,10 @@ def parse_wps_version(wps_ie):
 
     return f"{wps_version >> 4}.{wps_version & 0xF}" if wps_version != 0x10 else "1.0"
 
-
+'''
+	Вот тут не самая надежная тема. Лучше пройтись по всем тегам, 
+	но как нибудь потом
+'''
 def is_wps_locked(pkt: bytes) -> str:
 	wps_locked_id = b'\x10\x57'
 	wps_locked_id_probe = b'\0x01'
@@ -254,7 +259,12 @@ def is_wps_locked(pkt: bytes) -> str:
 	if index != -1 and pkt[index +3] == 0x1:
 		return 'Yes'
 	return 'No'
-	
+
+'''
+	Знаю, по идиотски, но умнее лень было придумывать
+	Вся эта инфа есть в RadioTap и в tagged elems (Dot11Elt),
+	однако лень......
+'''
 def get_channel(pkt):
 	channel = None
 	if pkt.haslayer(Dot11Elt):
@@ -266,6 +276,11 @@ def get_channel(pkt):
 			elt = elt.payload if isinstance(elt.payload, Dot11Elt) else None
 	return channel
 
+'''
+	Согласно wireshark - WPS IE это: 
+	0x0050f5 (Microsoft OUI)
+	0x04 (Type: WPS)
+'''
 def get_wps_ie(pkt):
 	wps_ie = None
 	elt = pkt.getlayer(Dot11Elt)
