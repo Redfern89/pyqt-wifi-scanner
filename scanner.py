@@ -26,8 +26,9 @@ from functools import partial
 import checker
 import wifi_manager
 import dot11_utils
+import deauth_dlg
 
-params = {
+params1 = {
 	'oui_path': 'data/oui.csv',
 	'row_height': 40,
 	'stations_row_height': 150
@@ -37,28 +38,6 @@ broadcast = 'ff:ff:ff:ff:ff:ff'
 
 def scale_rssi(rssi_value, min_rssi=-90, max_rssi=-40, new_min=0, new_max=100):
     return max(new_min, min(new_max, (rssi_value - min_rssi) * (new_max - new_min) / (max_rssi - min_rssi) + new_min))
-
-def load_oui_database(filename=params['oui_path']):
-	oui_dict = {}
-	
-	if not os.path.exists(filename):
-		print(f"Файл {filename} не найден")
-		sys.exit(1)
-	
-	with open(filename, newline='', encoding='utf-8') as csvfile:
-		reader = csv.reader(csvfile)
-		for row in reader:
-			if len(row) >= 3:
-				oui = row[1].upper()
-				vendor = row[2].strip()
-				oui_dict[oui] = vendor
-	return oui_dict
-
-def get_vendor_from_mac(mac_address: str, oui_dict: dict) -> str:
-	mac_prefix = mac_address.upper().replace(":", "").replace("-", "").replace(".", "")[:6]  # Приводим к формату 08EA44
-	return oui_dict.get(mac_prefix, "Unknown")
-
-oui_database = load_oui_database(params['oui_path'])
 
 class ProgressBarDelegate(QStyledItemDelegate):
 	def __init__(self, parent=None):
@@ -154,11 +133,17 @@ class MyTableView(QTableView):
 class ChoseWiFiAdapderDialog(QDialog):
 	def __init__(self, parent=None):
 		super().__init__(parent)
-
 		self.setWindowTitle("Выбор Wifi адаптера")
 		self.setWindowIcon(QIcon('icons/ethernet.png'))
-		self.setGeometry(200, 200, 1120, 520)
-
+		
+		xrandr_wxh = subprocess.check_output("xrandr | grep '*' | awk '{print $1}'", shell=True).decode()
+		wh = xrandr_wxh.split('x')
+		w = 1120
+		h = 520
+		x = round((int(wh[0]) / 2) - (w / 2))
+		y = round((int(wh[1]) / 2) - (h / 2))
+		self.setGeometry(x, y, w, h)
+		
 		self.table = QTableView(self)
 		self.model = QStandardItemModel(0, 5, self)
 		self.model.setHorizontalHeaderLabels(['PHY', 'Interface', 'MAC', 'Driver', 'Chipset', 'State', 'Mode'])
@@ -387,6 +372,11 @@ class MainWindow(QMainWindow):
 		self.supported_channels = []
 		self.interface = None
 		
+		self.interrupt_flag = False
+		self.ouiDB = {}
+		self.ouiCSV_Data = None
+		self.load_oui_csv()
+		
 		self.statusbar = QStatusBar()
 		self.setStatusBar(self.statusbar)
 		
@@ -432,7 +422,15 @@ class MainWindow(QMainWindow):
 		
 		self.setWindowTitle("PyQt WiFi scanner")
 		self.setWindowIcon(QIcon('icons/satellite-dish.png'))
-		self.setGeometry(100, 100, 1500, 530)
+		
+		xrandr_wxh = subprocess.check_output("xrandr | grep '*' | awk '{print $1}'", shell=True).decode()
+		wh = xrandr_wxh.split('x')
+		w = 1500
+		h = 530
+		x = round((int(wh[0]) / 2) - (w / 2))
+		y = round((int(wh[1]) / 2) - (h / 2))
+		
+		self.setGeometry(x, y, w, h)
 		
 		self.btn_wifi = QPushButton('Выбор адаптера')
 		self.btn_wifi.setIcon(QIcon('icons/ethernet.png'))
@@ -443,12 +441,18 @@ class MainWindow(QMainWindow):
 		self.btn_stop = QPushButton('Остановить')
 		self.btn_stop.setIcon(QIcon('icons/cancelled.png'))
 		self.btn_stop.setIconSize(QSize(24, 24))
+		self.btn_targ = QPushButton('Выбор цели')
+		self.btn_targ.setIcon(QIcon('icons/target.png'))
+		self.btn_targ.setIconSize(QSize(24, 24))
 		
 		self.btn_wifi.clicked.connect(self.chose_wifi_adapter_dialog)
 		self.btn_scan.clicked.connect(self.scan_networks)
 		self.btn_stop.clicked.connect(self.stop_scan)
+		self.btn_targ.clicked.connect(self.target_select)
+		
 		self.btn_scan.setEnabled(False)
 		self.btn_stop.setEnabled(False)
+		#self.btn_targ.setEnabled(False)
 		
 		self.wps_checkbox = QCheckBox('Только WPS-сети')
 		self.sta_checkbox = QCheckBox('Показывать подключенные станции')
@@ -458,6 +462,7 @@ class MainWindow(QMainWindow):
 		top_layout.addWidget(self.btn_wifi)
 		top_layout.addWidget(self.btn_scan)
 		top_layout.addWidget(self.btn_stop)
+		top_layout.addWidget(self.btn_targ)
 		top_layout.addWidget(self.wps_checkbox)
 		top_layout.addWidget(self.sta_checkbox)
 		top_layout.setContentsMargins(5, 5, 5, 0)
@@ -498,6 +503,43 @@ class MainWindow(QMainWindow):
 
 		self.setCentralWidget(central_widget)
 		central_widget.setLayout(main_layout)
+	
+	def target_select(self):
+		selected_indexes = self.table.selectionModel().selectedRows()
+		if selected_indexes:
+			if self.interface:
+				row = selected_indexes[0].row()
+				model = self.table.model()
+				bssid = model.data(model.index(row, 1))
+				channel = model.data(model.index(row, 2))
+				if bssid:
+					targetWindow = deauth_dlg.DeauthDialog(self.interface, bssid, channel, self)
+					targetWindow.exec_()
+			else:
+				QMessageBox.critical(self, "Error", "Интерфейс не выбран!")
+	
+	def load_oui_csv(self):
+		with open('data/oui.csv', newline='', encoding='utf-8') as csvfile:
+			reader = csv.reader(csvfile)
+			for row in reader:
+				if len(row) >= 3:
+					oui = row[1].upper()
+					vendor = row[2].strip()
+					self.ouiDB[oui] = vendor
+	
+	def get_mac_vendor(self, mac):
+		mac_prefix = mac.upper().replace(":", "").replace("-", "").replace(".", "")[:6]
+		return self.ouiDB.get(mac_prefix, "Unknown")
+	
+	def get_mac_vendor_mixed(self, mac):
+		if mac:
+			vendor = self.get_mac_vendor(mac)
+			if vendor != 'Unknown':
+				return f"{vendor[:9].replace(' ', '')}_{mac[9:].upper()}"
+			else:
+				return mac.upper()
+		else:
+			return
 	
 	def startWorkTimer(self):
 		self.workTimeLabel.setText('0d 00:00:00')
@@ -584,6 +626,7 @@ class MainWindow(QMainWindow):
 	def stop_scan(self):
 		self.btn_stop.setEnabled(False)
 		self.sniffing = False
+		self.interrupt_flag = True
 		self.stop_hopping.set()
 
 		if self.hopper_thread:
@@ -616,6 +659,7 @@ class MainWindow(QMainWindow):
 		if self.sniffing:
 			return
 		
+		self.interrupt_flag = False
 		self.startWorkTimer()
 		self.sniffing = True
 		self.stop_hopping.clear()
@@ -633,16 +677,19 @@ class MainWindow(QMainWindow):
 	
 	def channel_hopper(self):
 		while not self.stop_hopping.is_set():  
-			ch = random.choice(self.supported_channels)
 			if self.stop_hopping.is_set():
 				break
+			ch = random.choice(self.supported_channels)
+			wifi_manager.switch_iface_channel(self.interface, ch)
+			
+			#for ch in self.supported_channels:
 			wifi_manager.switch_iface_channel(self.interface, ch)
 			self.safe_chlabel_set_ch(str(ch))
 			time.sleep(0.2)
 
 	def sniff_packets(self):
-		while self.sniffing:
-			sniff(iface=self.interface, prn=self.radio_packets_handler, store=0, timeout=5)
+		#while self.sniffing:
+		sniff(iface=self.interface, prn=self.radio_packets_handler, store=0, stop_filter=lambda pkt: (self.interrupt_flag))
 
 	def clear_list(self):
 		while self.model.rowCount() > 0:
@@ -664,7 +711,7 @@ class MainWindow(QMainWindow):
 		
 		self.model.appendRow(rows)
 		row_number = self.model.rowCount() -1
-		self.table.setRowHeight(row_number, int(params['row_height']))
+		self.table.setRowHeight(row_number, 40)
 		
 		self.previous_progress_values[(row_number, 9)] = data['signal']
 	
@@ -744,16 +791,16 @@ class MainWindow(QMainWindow):
 		self.netCountLabel.setText(f"Networks: {cnt}")
 	
 	def stations_handler(self, pkt):
-		ap_mac = pkt.addr2
+		ap_mac = pkt.addr1
 		if ((ap_mac in self.networks) and (pkt.type == 1 and pkt.subtype in [8, 9])):
-			if pkt.addr1 != broadcast:
+			if pkt.addr2 != broadcast:
 
-				station_MAC = pkt.addr1
+				station_MAC = pkt.addr2
 				station_dBm_AntSignal = pkt.dBm_AntSignal if hasattr(pkt, 'dBm_AntSignal') else -100
 				station_ChannelFlags = pkt.ChannelFlags if hasattr(pkt, 'ChannelFlags') else '?'
 				station_Rate = pkt.Rate if hasattr(pkt, 'Rate') else '?'
 				station_Rate = '?' if station_Rate is None else station_Rate
-				station_Vendor = get_vendor_from_mac(station_MAC, oui_database)
+				station_Vendor = self.get_mac_vendor(station_MAC) # get_vendor_from_mac(station_MAC, oui_database)
 				
 				if ap_mac in self.networks:
 					stations_networks = self.networks[ap_mac]['stations']
@@ -808,7 +855,7 @@ class MainWindow(QMainWindow):
 			ciphers = ','.join(enc_info['ciphers'])
 			akms = ','.join(enc_info['akms'])
 			
-			vendor = get_vendor_from_mac(bssid, oui_database)
+			vendor = self.get_mac_vendor(bssid) #get_vendor_from_mac(bssid, oui_database)
 			chip = dot11_utils.get_chip_vendor(bytes(pkt))
 			
 			if wps_ie:
@@ -847,7 +894,7 @@ class MainWindow(QMainWindow):
 			
 			self.safe_update_item_by_bssid(bssid, 2, str(channel))
 			self.safe_update_item_by_bssid(bssid, 10, str(signal))
-			self.safe_update_item_by_bssid(bssid, 11, str(beacons))			
+			self.safe_update_item_by_bssid(bssid, 11, str(beacons))		
 
 if __name__ == '__main__':
 	if checker.check_all_need():

@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 
+'''
+	Модуль вспомогательных функций для GUI WiFi Scaner
+	
+	Автор: Вадим Алиев
+	Дата: 18.02.2025
+	Версия 1.0
+'''
+
 import re
 import os
 import time
 import subprocess
 
+
 def handle_lost_phys():
 	if os.path.exists('/sys/class/ieee80211'):
-		return os.listdir('/sys/class/ieee80211')
+		return os.listdir('/sys/class/ieee80211') # Каждая, найденая директория - PHYDEV
 	return None
-	
+
 def iface_exists(iface):
 	return os.path.exists(f"/sys/class/net/{iface}")
 
@@ -27,18 +36,18 @@ def get_phy_state(phy):
 	iface = iface_name_by_phy(phy)
 	iface_data = subprocess.run(['ip', 'link', 'show', iface], capture_output=True, text=True)
 	return 'UP' in iface_data.stdout
-	
+
 def get_iface_state(iface):
 	iface_data = subprocess.run(['ip', 'link', 'show', iface], capture_output=True, text=True)
 	return 'UP' in iface_data.stdout
 
+
 def set_phy_link(phy, state):
-	states = ['up', 'down']
 	iface = iface_name_by_phy(phy)
-	
-	if state in states:
+
+	if state in ['up', 'down']:
 		subprocess.run(['ip', 'link', 'set', iface, state])
-		
+
 def get_phy_driver(phy):
 	if os.path.exists(f"/sys/class/ieee80211/{phy}/device/uevent"):
 		with open(f"/sys/class/ieee80211/{phy}/device/uevent", "r") as uevent:
@@ -46,16 +55,17 @@ def get_phy_driver(phy):
 			return data.get('DRIVER')
 	return None
 
+
 def get_phy_chipset(phy):
 	iface = iface_name_by_phy(phy)
 	if os.path.exists(f"/sys/class/ieee80211/{phy}/device/modalias"):
 		modalias = open(f"/sys/class/ieee80211/{phy}/device/modalias", "r").read()			
-		bus = modalias[:3]
-			
+		bus = modalias[:3] # шина
+
 		if bus == 'pci':
 			businfo = subprocess.run(['ethtool', '-i', iface], capture_output=True, text=True)
 			for line in businfo.stdout.splitlines():
-				match = re.search('bus-info: [0-9]{4}:(.+)', line)
+				match = re.search('bus-info: [0-9]{4}:(.+)', line) 
 				if match:
 					bus_id = match.group(1)
 					if bus_id:
@@ -80,7 +90,6 @@ def get_phy_chipset(phy):
 					match = re.search(fr'ID {vid_pid} (.+)', line)
 					if match:
 						chipset = match.group(1).replace('Wireless Adapter', '').strip()
-						#chipset = match.group(1).replace('Wireless Network Adapter', '').strip()
 						return chipset
 
 	return None
@@ -107,7 +116,7 @@ def set_phy_80211_monitor(phy):
 		set_phy_link(phy, 'down')
 		time.sleep(1)
 		if get_phy_state(phy) == False:
-			#print(f"{phy} {iface} is down state")
+			print(f"{phy} {iface} is down state")
 			iface_index = 0
 			mon_iface = f"radio{iface_index}mon"
 

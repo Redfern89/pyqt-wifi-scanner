@@ -1,4 +1,6 @@
 __pycache__
-test.py
-console_scan.py
-utils.py
+*.cap
+*.pcap
+*.pcapng
+*.o
+pass

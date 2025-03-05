@@ -62,9 +62,14 @@ def get_wifi_encryption(pkt):
 			wpa_info = elt.info
 		elt = elt.payload.getlayer(Dot11Elt)
 
-	if pkt[Dot11Beacon].cap & 0x10:
-		wep = True
+	if pkt.haslayer(Dot11Beacon):
+		if pkt[Dot11Beacon].cap & 0x10:
+			wep = True
 		
+	if pkt.haslayer(Dot11ProbeResp):
+		if pkt[Dot11ProbeResp].cap & 0x10:
+			wep = True
+
 	if rsn_info:
 		akm_count = int.from_bytes(rsn_info[10:12], "little")
 		akm_list = rsn_info[12:12 + (akm_count * 4)]
