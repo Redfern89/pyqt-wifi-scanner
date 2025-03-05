@@ -59,7 +59,7 @@ def get_chip_vendor(pkt: bytes) -> str:
 	 ╰─> 9.4.2.25 RSNE
          ├─> 9.4.2.25.1 General
          ├─> 9.4.2.25.2 Cipher suites
-	     ╰─> 9.4.2.25.3 AKM suites
+	 ╰─> 9.4.2.25.3 AKM suites
 '''
 def get_wifi_encryption(pkt):
 	wep = False
