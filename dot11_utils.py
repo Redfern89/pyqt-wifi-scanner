@@ -59,7 +59,10 @@ def get_chip_vendor(pkt: bytes) -> str:
 	 ╰─> 9.4.2.25 RSNE
             ├─> 9.4.2.25.1 General
             ├─> 9.4.2.25.2 Cipher suites
-	    ╰─> 9.4.2.25.3 AKM suites
+            ╰─> 9.4.2.25.3 AKM suites
+            
+            
+  Как я с этим заебался.... Нужно найти инфу о ключах шифрования и пройтись по спискам ключей
 '''
 def get_wifi_encryption(pkt):
 	wep = False
@@ -278,8 +281,8 @@ def get_channel(pkt):
 
 '''
 	Согласно wireshark - WPS IE это: 
-	0x0050f5 (Microsoft OUI)
-	0x04 (Type: WPS)
+	0x0050f2 - (Microsoft OUI)
+	0x04 - (Type: WPS)
 '''
 def get_wps_ie(pkt):
 	wps_ie = None
