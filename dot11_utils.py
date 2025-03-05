@@ -61,14 +61,14 @@ def get_chip_vendor(pkt: bytes) -> str:
             ├─> 9.4.2.25.2 Cipher suites
             ╰─> 9.4.2.25.3 AKM suites
             
-            
   Как я с этим заебался.... Нужно найти инфу о ключах шифрования и пройтись по спискам ключей
 '''
 def get_wifi_encryption(pkt):
 	wep = False
 	rsn_info = False
 	wpa_info = False
-
+	
+	# WPA не содержит RSN IE, а Vendor OUI 00:50:f2 (Microsoft) с ID 1, так их и можно различить
 	elt = pkt.getlayer(Dot11Elt)
 	while elt:
 		if elt.ID == 48:
@@ -76,19 +76,17 @@ def get_wifi_encryption(pkt):
 		elif elt.ID == 221 and elt.info.startswith(b'\x00\x50\xF2\x01'):
 			wpa_info = elt.info
 		elt = elt.payload.getlayer(Dot11Elt)
-
+	
+	# Инфа о WEP содержится в маяке в поле Capabilities (5й бит - флаг WEP)
 	if pkt.haslayer(Dot11Beacon):
 		if pkt[Dot11Beacon].cap & 0x10:
-			wep = True
-		
-	if pkt.haslayer(Dot11ProbeResp):
-		if pkt[Dot11ProbeResp].cap & 0x10:
 			wep = True
 
 	if rsn_info:
 		akm_count = int.from_bytes(rsn_info[10:12], "little")
 		akm_list = rsn_info[12:12 + (akm_count * 4)]
 		
+		# WPA3 содержит ID о SAE
 		if b'\x00\x0f\xac\x08' in akm_list:
 			return 'WPA3'
 		else:
