@@ -3,9 +3,9 @@
 from scapy.all import *
 
 '''
-	IEEE 802.11-2016
-	 ╰─> 9.4.2.26 Vendor specific element
-	      ╰─> Figure 9-258 Vendor specific element format
+     IEEE 802.11-2016
+      ╰─> 9.4.2.26 Vendor specific element
+          ╰─> Figure 9-258 Vendor specific element format
 '''
 def get_chip_vendor(pkt: bytes) -> str:
 	vendors_oui = {
