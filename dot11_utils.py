@@ -84,7 +84,7 @@ def get_wifi_encryption(pkt):
 			wpa_info = elt.info
 		elt = elt.payload.getlayer(Dot11Elt)
 	
-	# Инфа о WEP содержится в маяке в поле Capabilities (5й бит - флаг WEP)
+	# Инфа о WEP содержится в маяке в поле Capabilities (4й бит - флаг WEP)
 	if pkt.haslayer(Dot11Beacon):
 		if pkt[Dot11Beacon].cap & 0x10:
 			wep = True
@@ -257,7 +257,7 @@ def parse_wps_version(wps_ie):
 
 '''
 	Вот тут не самая надежная тема. Лучше пройтись по всем тегам, 
-	но как нибудь потом
+	проверяя их длину и смещение, но как нибудь потом
 '''
 def is_wps_locked(pkt: bytes) -> str:
 	wps_locked_id = b'\x10\x57'
