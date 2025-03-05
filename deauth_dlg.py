@@ -552,6 +552,7 @@ class DeauthDialog(QDialog):
 					self.packets.append(pkt)
 					self.safe_log_add(f"[+] Done, ssid=\"{ssid}\"")
 					self.btn_deauth.setEnabled(True)
+					self.setWindowTitle(f'Мониторинг сети {ssid}')
 					
 				self.safe_update_ap_ssid(ssid)
 				self.safe_update_ap_rssi(signal)
