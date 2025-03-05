@@ -2,6 +2,11 @@
 
 from scapy.all import *
 
+'''
+	IEEE 802.11-2016
+	 ╰─> 9.4.2.26 Vendor specific element
+	      ╰─> Figure 9-258 Vendor specific element format
+'''
 def get_chip_vendor(pkt: bytes) -> str:
 	vendors_oui = {
 		0x001018: "Broadcom",  # Broadcom
@@ -48,6 +53,13 @@ def get_chip_vendor(pkt: bytes) -> str:
 		index += 1
 
 	return "Unknown"
+	
+'''
+	IEEE 802.11-2016
+	 ├─> 9.4.2.25.1 General
+	 ├─> 9.4.2.25.2 Cipher suites
+	 ╰─> 9.4.2.25.3 AKM suites
+'''
 
 def get_wifi_encryption(pkt):
 	wep = False
@@ -232,7 +244,7 @@ def parse_wps_version(wps_ie):
 
     return f"{wps_version >> 4}.{wps_version & 0xF}" if wps_version != 0x10 else "1.0"
 
-# Поиск флага блокировки в probe-пакетах сети
+
 def is_wps_locked(pkt: bytes) -> str:
 	wps_locked_id = b'\x10\x57'
 	wps_locked_id_probe = b'\0x01'
